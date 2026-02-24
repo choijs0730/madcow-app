@@ -290,6 +290,44 @@
   .timer-btn:hover { border-color: var(--primary); color: var(--primary); }
   .timer-btn.primary { border-color: var(--primary); color: #fff; background: var(--primary); }
   .timer-btn.primary:hover { background: var(--primary-dk); border-color: var(--primary-dk); }
+
+  /* ── SETTINGS MODAL ── */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(17,24,39,0.45);
+    display:none; align-items:center; justify-content:center; z-index:300;
+    padding:18px;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    width:min(520px, 100%); background:var(--surface); border:1.5px solid var(--border);
+    border-radius:16px; box-shadow:0 12px 38px rgba(0,0,0,0.22); overflow:hidden;
+  }
+  .modal-hdr{
+    padding:14px 16px; background:var(--surface2); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .modal-title{ font-family:'Black Han Sans', sans-serif; font-size:20px; color:var(--primary); }
+  .modal-close{ background:transparent; border:none; cursor:pointer; font-size:22px; color:var(--muted); }
+  .modal-body{ padding:14px 16px 6px; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:420px){ .form-grid{ grid-template-columns:1fr; } }
+  .field label{ display:block; font-size:12px; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .field input{
+    width:100%; padding:10px 12px; border-radius:10px;
+    border:1.5px solid var(--border2); font-size:14px;
+    outline:none;
+  }
+  .field input:focus{ border-color:var(--primary); box-shadow:0 0 0 3px rgba(34,85,221,0.15); }
+  .modal-help{ margin-top:10px; font-size:12px; color:var(--text2); line-height:1.6; }
+  .modal-footer{
+    padding:12px 16px 16px; display:flex; gap:10px; justify-content:flex-end;
+  }
+  .btn{ padding:10px 12px; border-radius:10px; font-size:13px; font-weight:800; cursor:pointer; border:1.5px solid var(--border2); background:#fff; color:var(--muted); }
+  .btn.primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.primary:hover{ background:var(--primary-dk); border-color:var(--primary-dk); }
+  .btn.danger{ background:#fff; border-color:#fecaca; color:var(--red); }
+  .btn.danger:hover{ background:#fef2f2; }
+
 </style>
 </head>
 <body>
@@ -301,6 +339,9 @@
       <h1>MADCOW 5×5</h1>
       <div class="breadcrumb" id="breadcrumb">12주 프로그램</div>
     </div>
+
+    <button class="back-btn" id="settings-btn" style="display:block;margin-left:auto" onclick="openSettings()" aria-label="설정">⚙︎</button>
+
   </div>
   <div class="stats-row">
     <span class="stat-pill" id="done-pill">0 / 36 완료</span>
@@ -355,7 +396,18 @@
 // ══════════════════════════════════════════
 //  프로그램 계산
 // ══════════════════════════════════════════
-const RM5 = { squat:110, dead:120, military:50, row:75, bench:85 };
+const DEFAULT_RM5 = { squat:110, dead:120, military:50, row:75, bench:85 };
+
+function getRM5(){
+  try{ return JSON.parse(localStorage.getItem('mc_v3_rm5')||'null') || DEFAULT_RM5; }
+  catch{ return DEFAULT_RM5; }
+}
+function saveRM5(rm){
+  localStorage.setItem('mc_v3_rm5', JSON.stringify(rm));
+}
+
+// 현재 적용 중인 5RM
+let RM5 = getRM5();
 
 function r(w) { return Math.round(w/2.5)*2.5; }
 function topW(base, week) { return r(base*0.90) + (week-1)*2.5; }
@@ -425,7 +477,13 @@ function buildProgram() {
   });
 }
 
-const program = buildProgram();
+let program = buildProgram();
+
+function rebuildProgram(){
+  RM5 = getRM5();
+  program = buildProgram();
+}
+
 
 // ── 스토리지 ──
 // ── 세트별 진행 저장(체크박스) ──
@@ -444,6 +502,7 @@ function exportBackup(){
   const payload={
     version: 1,
     exportedAt: new Date().toISOString(),
+    rm5: getRM5(),
     sessions: getCompleted(),      // mc_v3
     sets: getSetState()            // mc_v3_sets
   };
@@ -458,9 +517,11 @@ function exportBackup(){
 function importBackupText(txt){
   const data=JSON.parse(txt);
   if(!data || typeof data!=='object') throw new Error('invalid');
+  if(data.rm5) saveRM5(data.rm5);
   if(data.sessions) saveCompleted(data.sessions);
   if(data.sets) saveSetState(data.sets);
   // UI refresh
+  rebuildProgram();
   updateStats(); renderWeekGrid();
   if(curWeek!==null){ renderDayList(curWeek); }
   if(curDay!==null){ renderDetail(curWeek,curDay); }
@@ -706,6 +767,58 @@ updateStats();
 updateHeader();
 
 // ── 백업 파일 선택 처리 ──
+// ── 설정(5RM) ──
+function openSettings(){
+  const m=document.getElementById('settings-modal');
+  if(!m) return;
+  const rm=getRM5();
+  document.getElementById('rm-squat').value = rm.squat;
+  document.getElementById('rm-bench').value = rm.bench;
+  document.getElementById('rm-row').value = rm.row;
+  document.getElementById('rm-dead').value = rm.dead;
+  document.getElementById('rm-military').value = rm.military;
+  m.classList.add('show');
+}
+function closeSettings(){
+  const m=document.getElementById('settings-modal');
+  if(!m) return;
+  m.classList.remove('show');
+}
+function parsePosNum(v){
+  const n=Number(v);
+  if(!isFinite(n) || n<=0) return null;
+  return n;
+}
+function saveSettings(){
+  const rm={
+    squat: parsePosNum(document.getElementById('rm-squat').value),
+    bench: parsePosNum(document.getElementById('rm-bench').value),
+    row: parsePosNum(document.getElementById('rm-row').value),
+    dead: parsePosNum(document.getElementById('rm-dead').value),
+    military: parsePosNum(document.getElementById('rm-military').value),
+  };
+  if(Object.values(rm).some(v=>v===null)){
+    alert('모든 5RM을 1 이상 숫자로 입력해줘요.');
+    return;
+  }
+  saveRM5(rm);
+  rebuildProgram();
+  renderWeekGrid();
+  if(curWeek!==null){ renderDayList(curWeek); }
+  if(curDay!==null){ renderDetail(curWeek,curDay); }
+  updateHeader(); updateStats();
+  closeSettings();
+}
+function resetProgress(){
+  if(!confirm('진행 상황(세트 체크/완료)을 모두 초기화할까요?\n중량 설정은 유지됩니다.')) return;
+  localStorage.removeItem('mc_v3');
+  localStorage.removeItem('mc_v3_sets');
+  updateStats(); renderWeekGrid();
+  if(curWeek!==null){ renderDayList(curWeek); }
+  if(curDay!==null){ renderDetail(curWeek,curDay); }
+  alert('초기화 완료!');
+}
+
 const backupFileInput = document.getElementById('backup-file');
 if(backupFileInput){
   backupFileInput.addEventListener('change', (e)=>{
@@ -743,7 +856,19 @@ function updateTimerUI() {
 }
 
 function timerToggle(forceStart=false) {
-  if(timerOn && !forceStart){ clearInterval(timerIv); timerIv=null; timerOn=false; updateTimerUI(); return; }
+  if(timerOn && !forceStart){ clearInterval(timerIv); timerIv=null; timerOn=false; updateTimerUI();
+
+// 모달 UX
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){ closeSettings(); }
+});
+const settingsModal = document.getElementById('settings-modal');
+if(settingsModal){
+  settingsModal.addEventListener('click', (e)=>{
+    if(e.target === settingsModal) closeSettings();
+  });
+}
+ return; }
   if(timerRem===0) timerRem=TIMER_DUR;
   // 이미 실행 중이면 리셋 후 재시작
   if(timerIv){ clearInterval(timerIv); timerIv=null; }
@@ -782,6 +907,35 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-label="설정">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">설정 · 5RM</div>
+      <button class="modal-close" onclick="closeSettings()" aria-label="닫기">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>스쿼트 5RM (kg)</label><input id="rm-squat" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>벤치프레스 5RM (kg)</label><input id="rm-bench" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>바벨로우 5RM (kg)</label><input id="rm-row" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>데드리프트 5RM (kg)</label><input id="rm-dead" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>밀리터리프레스 5RM (kg)</label><input id="rm-military" inputmode="decimal" type="number" min="1" step="0.5"></div>
+      </div>
+      <div class="modal-help">
+        입력한 5RM을 기준으로 1~12주 중량이 즉시 재계산돼요.<br/>
+        <b>주의</b>: 기존 체크(세트/완료)는 유지돼요. 새 사이클로 완전히 다시 시작하려면 “진행 초기화”를 눌러주세요.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" onclick="resetProgress()">진행 초기화</button>
+      <button class="btn" onclick="closeSettings()">취소</button>
+      <button class="btn primary" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

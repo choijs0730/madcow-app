@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2255dd">
+
+<!-- iOS PWA support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MADCOW 5x5">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<!-- iOS viewport tweaks -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<title>매드카우 5×5 | 12주 프로그램</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #f0f4ff;
+    --surface:    #ffffff;
+    --surface2:   #eef2ff;
+    --border:     #d0d8f0;
+    --border2:    #b8c4e8;
+    --primary:    #2255dd;
+    --primary-dk: #1a44bb;
+    --primary-lt: #dde8ff;
+    --primary-bg: #f0f4ff;
+    --accent:     #0044cc;
+    --text:       #111827;
+    --text2:      #374151;
+    --muted:      #6b7280;
+    --muted2:     #e5e9f5;
+    --done-bg:    #f0faf2;
+    --done-border:#86efac;
+    --done-text:  #15803d;
+    --done-badge: #dcfce7;
+    --red:        #dc2626;
+    --orange:     #ea580c;
+
+    --d1-color: #2255dd;
+    --d2-color: #7c3aed;
+    --d3-color: #0891b2;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 90px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--primary);
+    padding: 18px 20px 14px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(34,85,221,0.25);
+  }
+  .header-inner { display: flex; align-items: center; gap: 10px; }
+  .back-btn {
+    display: none;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; padding: 6px 12px; font-size: 16px;
+    cursor: pointer; border-radius: 6px; line-height: 1;
+    transition: background 0.15s; flex-shrink: 0;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.25); }
+  .header-titles { flex: 1; }
+  h1 { font-family: 'Black Han Sans', sans-serif; font-size: clamp(20px,4vw,30px); color: #fff; letter-spacing: -0.5px; line-height: 1; }
+  .breadcrumb { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 2px; min-height: 16px; }
+
+  .stats-row { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+  .stat-pill { background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #fff; font-weight: 600; }
+  .progress-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: #fff; border-radius: 3px; transition: width 0.5s ease; }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding: 20px; max-width: 640px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  /* ── VIEW 1: 주차 그리드 ── */
+  .section-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+
+  .week-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+  @media(max-width:400px){ .week-grid{ grid-template-columns: repeat(3,1fr); } }
+
+  .week-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px 8px 12px;
+    cursor: pointer; text-align: center;
+    transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .week-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(34,85,221,0.15); transform: translateY(-1px); }
+  .week-card.all-done { background: var(--done-bg); border-color: var(--done-border); }
+  .week-card-num { font-family: 'Black Han Sans', sans-serif; font-size: 20px; color: var(--text); }
+  .week-card.all-done .week-card-num { color: var(--done-text); }
+  .week-card-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .pips { display: flex; justify-content: center; gap: 5px; margin-top: 9px; }
+  .pip { width: 8px; height: 8px; border-radius: 50%; background: var(--muted2); }
+  .pip.done { background: var(--done-text); }
+
+  /* ── VIEW 2: 일차 카드 ── */
+  .v2-week-title { font-family: 'Black Han Sans', sans-serif; font-size: 26px; color: var(--primary); margin-bottom: 4px; }
+  .v2-top-weights {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 18px; font-size: 13px; color: var(--text2); line-height: 1.7;
+  }
+  .v2-top-weights strong { color: var(--primary); }
+
+  .day-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 0; margin-bottom: 12px;
+    cursor: pointer; display: flex; align-items: stretch;
+    transition: all 0.15s; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .day-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.12); transform: translateY(-1px); }
+  .day-card.done-card { background: var(--done-bg); border-color: var(--done-border); }
+
+  .day-card-stripe { width: 5px; flex-shrink: 0; border-radius: 12px 0 0 12px; }
+  .day-card.d1 .day-card-stripe { background: var(--d1-color); }
+  .day-card.d2 .day-card-stripe { background: var(--d2-color); }
+  .day-card.d3 .day-card-stripe { background: var(--d3-color); }
+  .day-card.done-card .day-card-stripe { background: var(--done-text); }
+
+  .day-card-body { flex: 1; padding: 16px 14px; }
+  .day-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .day-card-num { font-family: 'Black Han Sans', sans-serif; font-size: 18px; }
+  .day-card.d1 .day-card-num { color: var(--d1-color); }
+  .day-card.d2 .day-card-num { color: var(--d2-color); }
+  .day-card.d3 .day-card-num { color: var(--d3-color); }
+  .day-card.done-card .day-card-num { color: var(--done-text); }
+
+  .done-chip {
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px;
+    background: var(--done-badge); color: var(--done-text);
+    border: 1px solid var(--done-border);
+  }
+  .day-card-type { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+  .day-card-exercises { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  .day-card-arrow { display: flex; align-items: center; padding-right: 16px; }
+  .arrow-icon { font-size: 20px; color: var(--border2); }
+  .day-card:hover .arrow-icon { color: var(--primary); }
+
+  /* ── VIEW 3: 일차 상세 ── */
+  .detail-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .detail-day-title { font-family: 'Black Han Sans', sans-serif; font-size: 24px; }
+  .detail-hdr.d1 .detail-day-title { color: var(--d1-color); }
+  .detail-hdr.d2 .detail-day-title { color: var(--d2-color); }
+  .detail-hdr.d3 .detail-day-title { color: var(--d3-color); }
+
+  .detail-type-badge { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; }
+  .detail-hdr.d1 .detail-type-badge { background: #eff6ff; color: var(--d1-color); border: 1px solid #bfdbfe; }
+  .detail-hdr.d2 .detail-type-badge { background: #f5f3ff; color: var(--d2-color); border: 1px solid #ddd6fe; }
+  .detail-hdr.d3 .detail-type-badge { background: #ecfeff; color: var(--d3-color); border: 1px solid #a5f3fc; }
+
+  .detail-note {
+    font-size: 12px; color: var(--text2); margin-bottom: 18px;
+    padding: 10px 14px; background: var(--primary-lt);
+    border-left: 3px solid var(--primary); border-radius: 0 6px 6px 0; line-height: 1.7;
+  }
+
+  .ex-block { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .ex-block.ex-all-done { border-color: var(--done-border); background: var(--done-bg); }
+
+  .ex-block-hdr { padding: 12px 14px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .ex-block.ex-all-done .ex-block-hdr { border-bottom-color: var(--done-border); background: #f0faf2; }
+  .ex-block-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .ex-block-note { font-size: 11px; color: var(--red); margin-top: 3px; font-weight: 600; }
+  .ex-top-lbl { font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; margin-top: 2px; }
+
+  /* SET TABLE */
+  .sets-table { width: 100%; border-collapse: collapse; }
+  .sets-table tr { border-bottom: 1px solid var(--muted2); }
+  .sets-table tr:last-child { border-bottom: none; }
+  .sets-table td { padding: 9px 10px; font-size: 13px; vertical-align: middle; }
+
+  .td-num   { width: 26px; color: var(--muted); font-size: 11px; text-align: center; }
+  .td-label { width: 84px; font-size: 12px; font-weight: 600; }
+  .td-reps  { color: var(--muted); font-size: 12px; width: 40px; }
+  .td-weight{ font-family: 'Black Han Sans', sans-serif; font-size: 19px; }
+  .td-pct   { font-size: 10px; color: var(--muted); width: 34px; text-align: right; }
+  .td-check { width: 44px; text-align: center; }
+
+  /* ramp colors — readable on white */
+  .ramp-60 .td-weight { color: #9ca3af; }
+  .ramp-70 .td-weight { color: #6b7280; }
+  .ramp-80 .td-weight { color: #374151; }
+  .ramp-90 .td-weight { color: #1f2937; }
+
+  .top-set { background: #eef6ff; }
+  .top-set .td-weight { color: var(--primary); font-size: 21px; }
+  .top-set .td-label  { color: var(--primary); }
+  .top-set .td-reps   { color: var(--primary); font-weight: 700; }
+
+  .backoff-set .td-weight { color: var(--orange); }
+  .backoff-set .td-label  { color: var(--orange); }
+
+  .repeat-set .td-weight { color: var(--d2-color); }
+  .repeat-set .td-label  { color: var(--d2-color); }
+
+  .set-tag { display: inline-block; font-size: 9px; padding: 2px 5px; border-radius: 3px; font-weight: 700; text-transform: uppercase; vertical-align: middle; margin-left: 4px; }
+  .tag-top     { background: #dbeafe; color: var(--primary); border: 1px solid #bfdbfe; }
+  .tag-backoff { background: #ffedd5; color: var(--orange); border: 1px solid #fed7aa; }
+  .tag-repeat  { background: #ede9fe; color: var(--d2-color); border: 1px solid #ddd6fe; }
+
+  /* checkbox */
+  .set-checkbox {
+    appearance: none; -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border: 2px solid var(--border2); border-radius: 6px;
+    cursor: pointer; position: relative;
+    transition: all 0.15s; background: var(--surface);
+    display: block; margin: 0 auto;
+  }
+  .set-checkbox:hover { border-color: var(--primary); background: var(--primary-lt); }
+  .set-checkbox:checked { background: var(--primary); border-color: var(--primary); }
+  .set-checkbox:checked::after {
+    content: ''; position: absolute;
+    left: 5px; top: 2px; width: 8px; height: 12px;
+    border: 2.5px solid #fff; border-top: none; border-left: none;
+    transform: rotate(45deg);
+  }
+
+  .set-row.set-done td { opacity: 0.38; }
+  .set-row.set-done .td-weight { text-decoration: line-through; }
+  .set-row.set-done .td-check { opacity: 1; }
+
+  /* complete button */
+  .session-complete-btn {
+    margin: 14px 14px 16px; padding: 13px;
+    width: calc(100% - 28px);
+    border: 2px solid var(--primary); background: var(--primary);
+    color: #fff; font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    border-radius: 8px; letter-spacing: 0.5px; transition: all 0.2s;
+  }
+  .session-complete-btn:hover { background: var(--primary-dk); border-color: var(--primary-dk); }
+  .session-complete-btn.is-done {
+    background: var(--done-bg); border-color: var(--done-border);
+    color: var(--done-text);
+  }
+  .session-complete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── TIMER ── */
+  .timer-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; border-top: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 10px 20px; z-index: 200;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+    transition: border-color 0.3s;
+  }
+  .timer-bar.running  { border-top-color: var(--primary); }
+  .timer-bar.finished { border-top-color: var(--done-text); }
+
+  .timer-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+
+  .timer-ring { position: relative; width: 42px; height: 42px; flex-shrink: 0; }
+  .timer-ring svg { transform: rotate(-90deg); }
+  .timer-ring circle { fill: none; stroke-width: 3.5; }
+  .ring-bg   { stroke: var(--muted2); }
+  .ring-fill { stroke: var(--primary); stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
+  .timer-bar.finished .ring-fill { stroke: var(--done-text); }
+
+  .timer-display {
+    font-family: 'Black Han Sans', sans-serif; font-size: 26px;
+    color: var(--text); min-width: 66px; text-align: center;
+    letter-spacing: 2px; transition: color 0.3s;
+  }
+  .timer-bar.running  .timer-display { color: var(--primary); }
+  .timer-bar.finished .timer-display { color: var(--done-text); }
+
+  .timer-btn {
+    padding: 7px 14px; border: 1.5px solid var(--border);
+    background: #fff; color: var(--muted);
+    font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700;
+    cursor: pointer; border-radius: 6px; transition: all 0.15s; white-space: nowrap;
+  }
+  .timer-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .timer-btn.primary { border-color: var(--primary); color: #fff; background: var(--primary); }
+  .timer-btn.primary:hover { background: var(--primary-dk); border-color: var(--primary-dk); }
+
+  /* ── SETTINGS MODAL ── */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(17,24,39,0.45);
+    display:none; align-items:center; justify-content:center; z-index:300;
+    padding:18px;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    width:min(520px, 100%); background:var(--surface); border:1.5px solid var(--border);
+    border-radius:16px; box-shadow:0 12px 38px rgba(0,0,0,0.22); overflow:hidden;
+  }
+  .modal-hdr{
+    padding:14px 16px; background:var(--surface2); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .modal-title{ font-family:'Black Han Sans', sans-serif; font-size:20px; color:var(--primary); }
+  .modal-close{ background:transparent; border:none; cursor:pointer; font-size:22px; color:var(--muted); }
+  .modal-body{ padding:14px 16px 6px; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:420px){ .form-grid{ grid-template-columns:1fr; } }
+  .field label{ display:block; font-size:12px; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .field input{
+    width:100%; padding:10px 12px; border-radius:10px;
+    border:1.5px solid var(--border2); font-size:14px;
+    outline:none;
+  }
+  .field input:focus{ border-color:var(--primary); box-shadow:0 0 0 3px rgba(34,85,221,0.15); }
+  .modal-help{ margin-top:10px; font-size:12px; color:var(--text2); line-height:1.6; }
+  .modal-footer{
+    padding:12px 16px 16px; display:flex; gap:10px; justify-content:flex-end;
+  }
+  .btn{ padding:10px 12px; border-radius:10px; font-size:13px; font-weight:800; cursor:pointer; border:1.5px solid var(--border2); background:#fff; color:var(--muted); }
+  .btn.primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.primary:hover{ background:var(--primary-dk); border-color:var(--primary-dk); }
+  .btn.danger{ background:#fff; border-color:#fecaca; color:var(--red); }
+  .btn.danger:hover{ background:#fef2f2; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <button class="back-btn" id="back-btn" onclick="goBack()">←</button>
+    <div class="header-titles">
+      <h1>MADCOW 5×5</h1>
+      <div class="breadcrumb" id="breadcrumb">12주 프로그램</div>
+    </div>
+
+    <button class="back-btn" id="settings-btn" style="display:block;margin-left:auto" onclick="openSettings()" aria-label="설정">⚙︎</button>
+
+  </div>
+  <div class="stats-row">
+    <span class="stat-pill" id="done-pill">0 / 36 완료</span>
+    <span class="stat-pill" id="pct-pill">0%</span>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+</header>
+
+<!-- VIEW 1 -->
+<div class="view active" id="view-weeks">
+  <div class="section-label" style="margin-bottom:14px">주차 선택</div>
+
+  <div style="display:flex; gap:10px; margin-bottom:14px;">
+    <button class="timer-btn primary" style="flex:1" onclick="exportBackup()">백업 내보내기</button>
+    <button class="timer-btn" style="flex:1" onclick="document.getElementById('backup-file').click()">백업 가져오기</button>
+    <input id="backup-file" type="file" accept="application/json" style="display:none" />
+  </div>
+
+  <div class="week-grid" id="week-grid"></div>
+</div>
+
+<!-- VIEW 2 -->
+<div class="view" id="view-days">
+  <div class="v2-week-title" id="v2-title"></div>
+  <div class="v2-top-weights" id="v2-weights"></div>
+  <div id="day-cards"></div>
+</div>
+
+<!-- VIEW 3 -->
+<div class="view" id="view-detail">
+  <div id="detail-content"></div>
+</div>
+
+<!-- TIMER -->
+<div class="timer-bar" id="timer-bar">
+  <span class="timer-label">휴식 타이머</span>
+  <div class="timer-ring">
+    <svg width="42" height="42" viewBox="0 0 42 42">
+      <circle class="ring-bg" cx="21" cy="21" r="18"/>
+      <circle class="ring-fill" id="ring-fill" cx="21" cy="21" r="18"
+              stroke-dasharray="113.1" stroke-dashoffset="0"/>
+    </svg>
+  </div>
+  <div class="timer-display" id="timer-display">2:00</div>
+  <button class="timer-btn primary" id="timer-start-btn" onclick="timerToggle()">시작</button>
+  <button class="timer-btn" onclick="timerReset()">리셋</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  프로그램 계산
+// ══════════════════════════════════════════
+const DEFAULT_RM5 = { squat:110, dead:120, military:50, row:75, bench:85 };
+
+function getRM5(){
+  try{ return JSON.parse(localStorage.getItem('mc_v3_rm5')||'null') || DEFAULT_RM5; }
+  catch{ return DEFAULT_RM5; }
+}
+function saveRM5(rm){
+  localStorage.setItem('mc_v3_rm5', JSON.stringify(rm));
+}
+
+// 현재 적용 중인 5RM
+let RM5 = getRM5();
+
+function r(w) { return Math.round(w/2.5)*2.5; }
+function topW(base, week) { return r(base*0.90) + (week-1)*2.5; }
+
+const mkSets = {
+  day1(top) {
+    return [
+      {label:'세트 1', reps:5, weight:r(top*0.60), cls:'ramp-60', pct:'60%'},
+      {label:'세트 2', reps:5, weight:r(top*0.70), cls:'ramp-70', pct:'70%'},
+      {label:'세트 3', reps:5, weight:r(top*0.80), cls:'ramp-80', pct:'80%'},
+      {label:'세트 4', reps:5, weight:r(top*0.90), cls:'ramp-90', pct:'90%'},
+      {label:'탑셋',  reps:5, weight:top,           cls:'top-set', tag:'top', pct:'100%'},
+    ];
+  },
+  day2light(day1top) {
+    const top = r(day1top*0.70);
+    return [
+      {label:'세트 1', reps:5, weight:r(top*0.70), cls:'ramp-70', pct:'70%'},
+      {label:'세트 2', reps:5, weight:r(top*0.85), cls:'ramp-90', pct:'85%'},
+      {label:'세트 3', reps:5, weight:top,          cls:'repeat-set', tag:'repeat', pct:'100%'},
+      {label:'세트 4', reps:5, weight:top,          cls:'repeat-set', tag:'repeat', pct:'100%'},
+    ];
+  },
+  day2heavy(top) {
+    return [
+      {label:'세트 1', reps:5, weight:r(top*0.60), cls:'ramp-60', pct:'60%'},
+      {label:'세트 2', reps:5, weight:r(top*0.70), cls:'ramp-70', pct:'70%'},
+      {label:'세트 3', reps:5, weight:r(top*0.80), cls:'ramp-80', pct:'80%'},
+      {label:'탑셋',  reps:5, weight:top,           cls:'top-set', tag:'top', pct:'100%'},
+    ];
+  },
+  day3(top) {
+    const bo = r(top*0.775);
+    return [
+      {label:'세트 1',  reps:5, weight:r(top*0.60), cls:'ramp-60', pct:'60%'},
+      {label:'세트 2',  reps:5, weight:r(top*0.70), cls:'ramp-70', pct:'70%'},
+      {label:'세트 3',  reps:5, weight:r(top*0.80), cls:'ramp-80', pct:'80%'},
+      {label:'세트 4',  reps:5, weight:r(top*0.90), cls:'ramp-90', pct:'90%'},
+      {label:'탑셋',   reps:3, weight:top,           cls:'top-set',    tag:'top',     pct:'100%'},
+      {label:'백오프', reps:8, weight:bo,             cls:'backoff-set', tag:'backoff', pct:'~77%'},
+    ];
+  }
+};
+
+function buildProgram() {
+  return Array.from({length:12}, (_,i) => {
+    const w = i+1;
+    const sq=topW(RM5.squat,w), bch=topW(RM5.bench,w),
+          row=topW(RM5.row,w),  dl=topW(RM5.dead,w), mil=topW(RM5.military,w);
+    return { week:w, sq, bch, row, dl, mil, sessions:[
+      { day:1, type:'볼륨 데이', exercises:[
+          {name:'스쿼트',     top:sq,  sets:mkSets.day1(sq)},
+          {name:'벤치프레스', top:bch, sets:mkSets.day1(bch)},
+          {name:'바벨 로우',  top:row, sets:mkSets.day1(row)},
+      ]},
+      { day:2, type:'회복 데이', exercises:[
+          {name:'스쿼트',         top:r(sq*0.70), sets:mkSets.day2light(sq),  note:'저중량 — Day1 탑셋의 70%'},
+          {name:'데드리프트',     top:dl,          sets:mkSets.day2heavy(dl),  note:'오름차순 → 탑셋 5rep'},
+          {name:'밀리터리프레스', top:mil,         sets:mkSets.day2heavy(mil)},
+      ]},
+      { day:3, type:'강도 데이', exercises:[
+          {name:'스쿼트',     top:sq,  sets:mkSets.day3(sq)},
+          {name:'벤치프레스', top:bch, sets:mkSets.day3(bch)},
+          {name:'바벨 로우',  top:row, sets:mkSets.day3(row)},
+      ]},
+    ]};
+  });
+}
+
+let program = buildProgram();
+
+function rebuildProgram(){
+  RM5 = getRM5();
+  program = buildProgram();
+}
+
+
+// ── 스토리지 ──
+// ── 세트별 진행 저장(체크박스) ──
+function getSetState(){ try{return JSON.parse(localStorage.getItem('mc_v3_sets')||'{}');}catch{return{};} }
+function saveSetState(o){ localStorage.setItem('mc_v3_sets', JSON.stringify(o)); }
+function setKey(w,d,exi,si){ return `w${w}d${d}e${exi}s${si}`; }
+function isSetChecked(w,d,exi,si){ return !!getSetState()[setKey(w,d,exi,si)]; }
+function setSetChecked(w,d,exi,si,val){
+  const o=getSetState(), k=setKey(w,d,exi,si);
+  if(val) o[k]=true; else delete o[k];
+  saveSetState(o);
+}
+
+// ── 백업/복원(Export/Import) ──
+function exportBackup(){
+  const payload={
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    rm5: getRM5(),
+    sessions: getCompleted(),      // mc_v3
+    sets: getSetState()            // mc_v3_sets
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`madcow_backup_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function importBackupText(txt){
+  const data=JSON.parse(txt);
+  if(!data || typeof data!=='object') throw new Error('invalid');
+  if(data.rm5) saveRM5(data.rm5);
+  if(data.sessions) saveCompleted(data.sessions);
+  if(data.sets) saveSetState(data.sets);
+  // UI refresh
+  rebuildProgram();
+  updateStats(); renderWeekGrid();
+  if(curWeek!==null){ renderDayList(curWeek); }
+  if(curDay!==null){ renderDetail(curWeek,curDay); }
+  alert('백업을 불러왔어요!');
+}
+
+function getCompleted() { try{return JSON.parse(localStorage.getItem('mc_v3')||'{}');}catch{return{};} }
+function saveCompleted(o) { localStorage.setItem('mc_v3', JSON.stringify(o)); }
+function sessionKey(w,d) { return `w${w}d${d}`; }
+function isDone(w,d) { return !!getCompleted()[sessionKey(w,d)]; }
+function setDone(w,d,val) {
+  const o=getCompleted(), k=sessionKey(w,d);
+  if(val) o[k]=true; else delete o[k];
+  saveCompleted(o);
+}
+
+// ── 뷰 상태 ──
+let curWeek=null, curDay=null;
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function updateHeader() {
+  const bb=document.getElementById('back-btn');
+  const bc=document.getElementById('breadcrumb');
+  if(curDay!==null){
+    bb.style.display='block';
+    bc.textContent=`${curWeek}주차 › Day ${curDay}`;
+  } else if(curWeek!==null){
+    bb.style.display='block';
+    bc.textContent=`${curWeek}주차`;
+  } else {
+    bb.style.display='none';
+    bc.textContent='12주 프로그램';
+  }
+}
+function goBack() {
+  if(curDay!==null){ curDay=null; renderDayList(curWeek); showView('view-days'); }
+  else if(curWeek!==null){ curWeek=null; renderWeekGrid(); showView('view-weeks'); }
+  updateHeader(); updateStats();
+}
+function updateStats() {
+  const done=getCompleted(), cnt=Object.keys(done).length, pct=Math.round(cnt/36*100);
+  document.getElementById('done-pill').textContent=`${cnt} / 36 완료`;
+  document.getElementById('pct-pill').textContent=`${pct}%`;
+  document.getElementById('progress-fill').style.width=`${pct}%`;
+}
+
+// ── VIEW 1 ──
+function renderWeekGrid() {
+  const g=document.getElementById('week-grid'); g.innerHTML='';
+  for(let w=1;w<=12;w++){
+    const d1=isDone(w,1),d2=isDone(w,2),d3=isDone(w,3), all=d1&&d2&&d3;
+    const c=document.createElement('div');
+    c.className=`week-card${all?' all-done':''}`;
+    c.innerHTML=`
+      <div class="week-card-num">${w}주</div>
+      <div class="week-card-sub">Week ${w}</div>
+      <div class="pips">
+        <div class="pip${d1?' done':''}"></div>
+        <div class="pip${d2?' done':''}"></div>
+        <div class="pip${d3?' done':''}"></div>
+      </div>`;
+    c.onclick=()=>{ curWeek=w; curDay=null; renderDayList(w); showView('view-days'); updateHeader(); };
+    g.appendChild(c);
+  }
+}
+
+// ── VIEW 2 ──
+const dayExStr=['','스쿼트 · 벤치프레스 · 바벨 로우','스쿼트(저중량) · 데드리프트 · 밀리터리프레스','스쿼트 · 벤치프레스 · 바벨 로우'];
+function renderDayList(w) {
+  const wk=program[w-1];
+  document.getElementById('v2-title').textContent=`${w}주차`;
+  document.getElementById('v2-weights').innerHTML=
+    `<b>이번 주 탑셋</b> — 스쿼트 <strong>${wk.sq}kg</strong> · 벤치 <strong>${wk.bch}kg</strong> · 로우 <strong>${wk.row}kg</strong> · 데드 <strong>${wk.dl}kg</strong> · 밀리터리 <strong>${wk.mil}kg</strong>`;
+  const dc=document.getElementById('day-cards'); dc.innerHTML='';
+  wk.sessions.forEach(s=>{
+    const done=isDone(w,s.day);
+    const c=document.createElement('div');
+    c.className=`day-card d${s.day}${done?' done-card':''}`;
+    c.innerHTML=`
+      <div class="day-card-stripe"></div>
+      <div class="day-card-body">
+        <div class="day-card-top">
+          <div class="day-card-num">Day ${s.day}</div>
+          ${done?'<span class="done-chip">✓ 완료</span>':''}
+        </div>
+        <div class="day-card-type">${s.type}</div>
+        <div class="day-card-exercises">${dayExStr[s.day]}</div>
+      </div>
+      <div class="day-card-arrow"><span class="arrow-icon">›</span></div>`;
+    c.onclick=()=>{ curDay=s.day; renderDetail(w,s.day); showView('view-detail'); updateHeader(); window.scrollTo(0,0); };
+    dc.appendChild(c);
+  });
+}
+
+// ── VIEW 3 ──
+function renderDetail(w, d) {
+  const session = program[w-1].sessions[d-1];
+  const container = document.getElementById('detail-content');
+  container.innerHTML = '';
+
+  // 헤더
+  const hdr = document.createElement('div');
+  hdr.className = `detail-hdr d${d}`;
+  hdr.innerHTML = `
+    <div class="detail-day-title">Day ${d} · ${w}주차</div>
+    <span class="detail-type-badge">${session.type}</span>`;
+  container.appendChild(hdr);
+
+  // 노트
+  const notes = ['',
+    'Day 1 볼륨: 60→70→80→90→탑셋(100%) 오름차순 5×5. 마지막 탑셋이 메인.',
+    'Day 2 회복: 스쿼트·벤치는 저중량(Day1 탑셋의 70%). 데드·밀리터리는 오름차순→탑셋 5rep.',
+    'Day 3 강도: 오름차순 4×5 → 탑셋 1×3(PR 도전!) → 백오프 1×8.',
+  ];
+  const note = document.createElement('div');
+  note.className = 'detail-note';
+  note.textContent = notes[d];
+  container.appendChild(note);
+
+  // 완료 상태 추적
+  const totalSets = session.exercises.reduce((a,ex)=>a+ex.sets.length, 0);
+  let checkedCount = 0;
+
+  const completeBtn = document.createElement('button'); // 나중에 추가
+
+  // 운동 블록
+  session.exercises.forEach((ex, exi) => {
+    const block = document.createElement('div');
+    block.className = 'ex-block';
+
+    const topInfo = ex.sets.find(s=>s.tag==='top');
+    const topLabel = topInfo ? `탑셋 ${topInfo.reps}rep @ ${ex.top}kg` : `탑 ${ex.top}kg`;
+
+    const bh = document.createElement('div');
+    bh.className = 'ex-block-hdr';
+    bh.innerHTML = `
+      <div>
+        <div class="ex-block-name">${ex.name}</div>
+        ${ex.note?`<div class="ex-block-note">${ex.note}</div>`:''}
+      </div>
+      <div class="ex-top-lbl">${topLabel}</div>`;
+    block.appendChild(bh);
+
+    const table = document.createElement('table');
+    table.className = 'sets-table';
+
+    let exChecked = 0;
+    const exRows = [];
+
+    ex.sets.forEach((s,i) => {
+      const tr = document.createElement('tr');
+      tr.className = `set-row ${s.cls}`;
+
+      let tag = '';
+      if(s.tag==='top')     tag=`<span class="set-tag tag-top">TOP</span>`;
+      if(s.tag==='backoff') tag=`<span class="set-tag tag-backoff">백오프</span>`;
+      if(s.tag==='repeat')  tag=`<span class="set-tag tag-repeat">유지</span>`;
+
+      tr.innerHTML = `
+        <td class="td-num">${i+1}</td>
+        <td class="td-label">${s.label}${tag}</td>
+        <td class="td-reps">${s.reps}rep</td>
+        <td class="td-weight">${s.weight}kg</td>
+        <td class="td-pct">${s.pct||''}</td>
+        <td class="td-check"></td>`;
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'set-checkbox';
+      // 복원: 세트 체크 상태
+      const wasChecked = isSetChecked(w, d, exi, i);
+      cb.checked = wasChecked;
+      if(wasChecked){
+        tr.classList.add('set-done');
+        exChecked++; checkedCount++;
+      }
+
+      cb.addEventListener('change', () => {
+        setSetChecked(w, d, exi, i, cb.checked);
+
+        if(cb.checked) {
+          tr.classList.add('set-done');
+          exChecked++; checkedCount++;
+          timerToggle(true); // 세트 완료 → 타이머 자동 시작
+        } else {
+          tr.classList.remove('set-done');
+          exChecked--; checkedCount--;
+        }
+        // 운동 블록 전체 완료 여부
+        if(exChecked === ex.sets.length) block.classList.add('ex-all-done');
+        else block.classList.remove('ex-all-done');
+        // 세션 전체 완료 여부 → 자동 완료 처리
+        if(checkedCount === totalSets) {
+          setDone(w, d, true);
+          completeBtn.className = 'session-complete-btn is-done';
+          completeBtn.textContent = '✓ 모든 세트 완료! (취소하려면 클릭)';
+          updateStats(); renderWeekGrid(); renderDayList(w);
+        } else {
+          // 체크 해제 시 완료 취소
+          if(isDone(w,d)) {
+            setDone(w, d, false);
+            completeBtn.className = 'session-complete-btn';
+            completeBtn.textContent = '운동 완료 (수동 체크)';
+            updateStats(); renderWeekGrid(); renderDayList(w);
+          }
+        }
+      });
+      tr.querySelector('.td-check').appendChild(cb);
+      exRows.push({tr, cb});
+      table.appendChild(tr);
+    });
+
+    // 초기 렌더링: 운동 블록 완료 표시
+    if(exChecked === ex.sets.length) block.classList.add('ex-all-done');
+
+    block.appendChild(table);
+    container.appendChild(block);
+  });
+
+  // 완료 버튼 (수동 완료도 가능)
+  // 초기 렌더링: 모든 세트가 체크돼 있으면 세션 완료로 간주
+  if(checkedCount === totalSets) { setDone(w, d, true); }
+
+  const alreadyDone = isDone(w, d);
+  completeBtn.className = `session-complete-btn${alreadyDone?' is-done':''}`;
+  completeBtn.textContent = alreadyDone ? '✓ 완료됨 (취소하려면 클릭)' : '운동 완료 (수동 체크)';
+  completeBtn.onclick = () => {
+    const nowDone = !isDone(w, d);
+    setDone(w, d, nowDone);
+    completeBtn.className = `session-complete-btn${nowDone?' is-done':''}`;
+    completeBtn.textContent = nowDone ? '✓ 완료됨 (취소하려면 클릭)' : '운동 완료 (수동 체크)';
+    updateStats(); renderWeekGrid(); renderDayList(w);
+  };
+  container.appendChild(completeBtn);
+}
+
+// ── 초기화 ──
+renderWeekGrid();
+updateStats();
+updateHeader();
+
+// ── 백업 파일 선택 처리 ──
+// ── 설정(5RM) ──
+function openSettings(){
+  const m=document.getElementById('settings-modal');
+  if(!m) return;
+  const rm=getRM5();
+  document.getElementById('rm-squat').value = rm.squat;
+  document.getElementById('rm-bench').value = rm.bench;
+  document.getElementById('rm-row').value = rm.row;
+  document.getElementById('rm-dead').value = rm.dead;
+  document.getElementById('rm-military').value = rm.military;
+  m.classList.add('show');
+}
+function closeSettings(){
+  const m=document.getElementById('settings-modal');
+  if(!m) return;
+  m.classList.remove('show');
+}
+function parsePosNum(v){
+  const n=Number(v);
+  if(!isFinite(n) || n<=0) return null;
+  return n;
+}
+function saveSettings(){
+  const rm={
+    squat: parsePosNum(document.getElementById('rm-squat').value),
+    bench: parsePosNum(document.getElementById('rm-bench').value),
+    row: parsePosNum(document.getElementById('rm-row').value),
+    dead: parsePosNum(document.getElementById('rm-dead').value),
+    military: parsePosNum(document.getElementById('rm-military').value),
+  };
+  if(Object.values(rm).some(v=>v===null)){
+    alert('모든 5RM을 1 이상 숫자로 입력해줘요.');
+    return;
+  }
+  saveRM5(rm);
+  rebuildProgram();
+  renderWeekGrid();
+  if(curWeek!==null){ renderDayList(curWeek); }
+  if(curDay!==null){ renderDetail(curWeek,curDay); }
+  updateHeader(); updateStats();
+  closeSettings();
+}
+function resetProgress(){
+  if(!confirm('진행 상황(세트 체크/완료)을 모두 초기화할까요?\n중량 설정은 유지됩니다.')) return;
+  localStorage.removeItem('mc_v3');
+  localStorage.removeItem('mc_v3_sets');
+  updateStats(); renderWeekGrid();
+  if(curWeek!==null){ renderDayList(curWeek); }
+  if(curDay!==null){ renderDetail(curWeek,curDay); }
+  alert('초기화 완료!');
+}
+
+const backupFileInput = document.getElementById('backup-file');
+if(backupFileInput){
+  backupFileInput.addEventListener('change', (e)=>{
+    const file=e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>{ 
+      try{ importBackupText(String(reader.result||'')); }
+      catch(err){ alert('백업 파일을 읽지 못했어요. 파일이 맞는지 확인해줘요.'); }
+      backupFileInput.value='';
+    };
+    reader.readAsText(file);
+  });
+}
+
+
+// ══════════════════════════════════════
+//  타이머 (2분) — iOS 백그라운드에서도 정확히 흐르게(타임스탬프 기반)
+// ══════════════════════════════════════
+const TIMER_DUR = 120;
+const CIRCUM = 2 * Math.PI * 18; // ~113.1
+const TIMER_KEY = 'mc_v3_timer';
+
+let timerIv = null;
+let timer = loadTimer();
+
+function loadTimer(){
+  try{
+    const t = JSON.parse(localStorage.getItem(TIMER_KEY) || 'null');
+    if(t && typeof t === 'object'){
+      // 기본값 보정
+      return {
+        dur: Number(t.dur)||TIMER_DUR,
+        running: !!t.running,
+        startEpoch: t.startEpoch ? Number(t.startEpoch) : null,
+        elapsed: Number(t.elapsed)||0,
+        notified: !!t.notified
+      };
+    }
+  }catch(e){}
+  return { dur:TIMER_DUR, running:false, startEpoch:null, elapsed:0, notified:false };
+}
+function saveTimer(){
+  localStorage.setItem(TIMER_KEY, JSON.stringify(timer));
+}
+function now(){ return Date.now(); }
+
+function remainingSec(){
+  const base = timer.elapsed + (timer.running && timer.startEpoch ? (now()-timer.startEpoch)/1000 : 0);
+  const rem = Math.max(0, Math.ceil(timer.dur - base));
+  return rem;
+}
+
+function updateTimerUI() {
+  const rem = remainingSec();
+  const m=Math.floor(rem/60), s=rem%60;
+  document.getElementById('timer-display').textContent=`${m}:${String(s).padStart(2,'0')}`;
+  document.getElementById('ring-fill').style.strokeDashoffset = CIRCUM*(1-rem/timer.dur);
+  const bar=document.getElementById('timer-bar');
+  bar.classList.toggle('running', timer.running && rem>0);
+  bar.classList.toggle('finished', rem===0);
+  const btn=document.getElementById('timer-start-btn');
+  if(rem===0){ btn.textContent='다시 시작'; btn.className='timer-btn primary'; }
+  else if(timer.running){ btn.textContent='일시정지'; btn.className='timer-btn'; }
+  else { btn.textContent=rem<timer.dur?'계속':'시작'; btn.className='timer-btn primary'; }
+}
+
+function notifyFinishedOnce(){
+  if(timer.notified) return;
+  timer.notified = true;
+  saveTimer();
+  if(navigator.vibrate) navigator.vibrate([300,100,300]);
+  // iOS는 백그라운드에서 소리/진동이 막히는 경우가 많아서,
+  // 포그라운드로 돌아왔을 때라도 한 번 울리도록 함.
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [523,659,784].forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination); o.frequency.value=f;
+      g.gain.setValueAtTime(0.3,ctx.currentTime+i*0.18);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.18+0.35);
+      o.start(ctx.currentTime+i*0.18); o.stop(ctx.currentTime+i*0.18+0.4);
+    });
+  }catch(e){}
+}
+
+function ensureTimerLoop(){
+  if(timerIv) return;
+  timerIv = setInterval(()=>{
+    const rem = remainingSec();
+    updateTimerUI();
+    if(rem===0){
+      // 종료 처리(정확히 0이 되면 running을 false로)
+      if(timer.running){
+        timer.running=false;
+        timer.elapsed=timer.dur;
+        timer.startEpoch=null;
+        saveTimer();
+      }
+      clearInterval(timerIv); timerIv=null;
+      notifyFinishedOnce();
+    }
+  }, 250); // UI 부드럽게
+}
+
+function timerToggle() {
+  const rem = remainingSec();
+  if(timer.running){
+    // pause
+    timer.elapsed += (now() - (timer.startEpoch||now()))/1000;
+    timer.running=false;
+    timer.startEpoch=null;
+    saveTimer();
+    if(timerIv){ clearInterval(timerIv); timerIv=null; }
+    updateTimerUI();
+    return;
+  }
+  // start / restart
+  if(rem===0){
+    timer.elapsed=0;
+    timer.notified=false;
+  }
+  timer.running=true;
+  timer.startEpoch=now();
+  saveTimer();
+  ensureTimerLoop();
+  updateTimerUI();
+}
+
+function timerReset() {
+  if(timerIv){ clearInterval(timerIv); timerIv=null; }
+  timer = { dur:TIMER_DUR, running:false, startEpoch:null, elapsed:0, notified:false };
+  saveTimer();
+  updateTimerUI();
+}
+
+// iOS 백그라운드 복귀 시 정확히 보정
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible'){
+    // 재계산 + 완료면 알림 1회
+    updateTimerUI();
+    if(remainingSec()===0 && (timer.running || timer.elapsed>=timer.dur)){
+      timer.running=false;
+      timer.elapsed=timer.dur;
+      timer.startEpoch=null;
+      saveTimer();
+      notifyFinishedOnce();
+    }else if(timer.running){
+      ensureTimerLoop();
+    }
+  }else{
+    // 숨김 상태에서는 interval이 어차피 멈추거나 느려져서 UI루프는 정리
+    if(timerIv){ clearInterval(timerIv); timerIv=null; }
+  }
+});
+
+// 초기 UI
+updateTimerUI();
+if(timer.running){ ensureTimerLoop(); }
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-label="설정">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">설정 · 5RM</div>
+      <button class="modal-close" onclick="closeSettings()" aria-label="닫기">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>스쿼트 5RM (kg)</label><input id="rm-squat" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>벤치프레스 5RM (kg)</label><input id="rm-bench" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>바벨로우 5RM (kg)</label><input id="rm-row" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>데드리프트 5RM (kg)</label><input id="rm-dead" inputmode="decimal" type="number" min="1" step="0.5"></div>
+        <div class="field"><label>밀리터리프레스 5RM (kg)</label><input id="rm-military" inputmode="decimal" type="number" min="1" step="0.5"></div>
+      </div>
+      <div class="modal-help">
+        입력한 5RM을 기준으로 1~12주 중량이 즉시 재계산돼요.<br/>
+        <b>주의</b>: 기존 체크(세트/완료)는 유지돼요. 새 사이클로 완전히 다시 시작하려면 “진행 초기화”를 눌러주세요.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" onclick="resetProgress()">진행 초기화</button>
+      <button class="btn" onclick="closeSettings()">취소</button>
+      <button class="btn primary" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
